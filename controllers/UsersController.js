@@ -1,44 +1,20 @@
 import sha1 from 'sha1';
-import { dbClient } from '../utils/db'; // Renamed import to avoid naming conflict
+import dbClient from '../utils/db';
 
 class UsersController {
   static async postNew(req, res) {
-    try {
-      const { email, password } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ error: 'Missing email' });
-      }
-      if (!password) {
-        return res.status(400).json({ error: 'Missing password' });
-      }
-
-      // Check if user already exists
-      const existingUser = await dbClient.usersCollection().findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ error: 'Already exists' });
-      }
-
-      // Hash the password
-      const hashedPassword = sha1(password);
-
-      // Prepare the user data
-      const user = { email, password: hashedPassword };
-
-      // Insert the new user into the database
-      const result = await dbClient.usersCollection().insertOne(user);
-
-      // Return the new user
-      const newUser = {
-        id: result.insertedId,
-        email,
-      };
-
-      return res.status(201).json(newUser); // Ensure a return value
-    } catch (error) {
-      return res.status(500).json({ error: 'Internal Server Error' }); // Ensure a return value
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).send('Missing email');
     }
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).send('Missing password');
+    }
+    const user = await (await dbClient.usersCollection().findOne({ email }));
+    if (user) return res.status(400).send('Already exist');
+    const inserted_info = await (await dbClient.usersCollection().insertOne({ email, password: sha1(password) }));
+    res.json({ id: inserted_info.insertedId, email });
   }
 }
-
 export default UsersController;
