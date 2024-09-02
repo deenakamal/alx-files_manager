@@ -1,5 +1,6 @@
 import sha1 from 'sha1';
-import { dbClient } from '../utils/db'; // Adjusted to avoid named-as-default error
+import { dbClient } from '../utils/db';
+import redisClient from '../utils/redis';
 
 class UsersController {
   static async postNew(req, res) {
@@ -35,6 +36,37 @@ class UsersController {
       };
 
       return res.status(201).json(newUser); // Ensures a value is returned
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async getMe(req, res) {
+    try {
+      const token = req.headers['x-token'];
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const key = `auth_${token}`;
+      const userId = await redisClient.get(key);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await dbClient.usersCollection().findOne({ _id: userId });
+
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const userResponse = {
+        id: user._id,
+        email: user.email,
+      };
+
+      return res.status(200).json(userResponse);
     } catch (error) {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
