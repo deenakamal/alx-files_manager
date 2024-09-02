@@ -1,5 +1,5 @@
 import sha1 from 'sha1';
-import dbClient from '../utils/db';
+import { dbClient } from '../utils/db'; // Adjusted to avoid named-as-default error
 
 class UsersController {
   static async postNew(req, res) {
@@ -23,7 +23,10 @@ class UsersController {
       const hashedPassword = sha1(password);
 
       // Insert the new user into the database
-      const result = await dbClient.usersCollection().insertOne({ email, password: hashedPassword });
+      const result = await dbClient.usersCollection().insertOne({
+        email,
+        password: hashedPassword,
+      });
 
       // Return the new user
       const newUser = {
@@ -31,10 +34,9 @@ class UsersController {
         email,
       };
 
-      res.status(201).json(newUser);
+      return res.status(201).json(newUser); // Ensures a value is returned
     } catch (error) {
-      console.error('Error creating user:', error);  // Detailed error logging
-      res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
 }
